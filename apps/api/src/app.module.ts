@@ -11,6 +11,7 @@ import { User } from './events/entities/user.entity';
 import { EventsModule } from './events/events.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { SourcesModule } from './sources/sources.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { SourcesModule } from './sources/sources.module';
         username: config.get('DATABASE_USER', 'security_events'),
         password: config.get('DATABASE_PASSWORD', 'change_me'),
         entities: [SecurityEvent, EventSource, User, EventNote, EventHistory],
-        migrations: ['dist/database/migrations/*.js'],
+        migrations: [`${__dirname}/database/migrations/*.js`],
         synchronize: false,
         migrationsRun: true
       })
@@ -34,7 +35,14 @@ import { SourcesModule } from './sources/sources.module';
     EventsModule,
     IngestionModule,
     DashboardModule,
-    SourcesModule
+    SourcesModule,
+    UsersModule
   ]
 })
 export class AppModule {}
+
+
+
+
+
+

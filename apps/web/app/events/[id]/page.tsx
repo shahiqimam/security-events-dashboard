@@ -11,9 +11,20 @@ export default function EventDetailPage() {
   const event = useQuery({ queryKey: ['event', params.id], queryFn: () => api<any>(`/events/${params.id}`) });
   const notes = useQuery({ queryKey: ['notes', params.id], queryFn: () => api<any[]>(`/events/${params.id}/notes`) });
   const history = useQuery({ queryKey: ['history', params.id], queryFn: () => api<any[]>(`/events/${params.id}/history`) });
+  const assignees = useQuery({ queryKey: ['assignees'], queryFn: () => api<any[]>('/users/assignees') });
   const status = useMutation({
     mutationFn: (value: string) => api(`/events/${params.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: value }) }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['event', params.id] })
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['event', params.id] });
+      client.invalidateQueries({ queryKey: ['history', params.id] });
+    }
+  });
+  const assignment = useMutation({
+    mutationFn: (assignedToId: string | null) => api(`/events/${params.id}/assignment`, { method: 'PATCH', body: JSON.stringify({ assignedToId }) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['event', params.id] });
+      client.invalidateQueries({ queryKey: ['history', params.id] });
+    }
   });
   const addNote = useMutation({
     mutationFn: (content: string) => api(`/events/${params.id}/notes`, { method: 'POST', body: JSON.stringify({ content }) }),
@@ -59,6 +70,21 @@ export default function EventDetailPage() {
                 <button key={value} onClick={() => status.mutate(value)} className="rounded border border-line px-3 py-2 text-sm hover:bg-white/5">{value}</button>
               ))}
             </div>
+            <div className="mt-4 max-w-md">
+              <label className="text-sm text-slate-300" htmlFor="assignee">Assignee</label>
+              <div className="mt-1 flex gap-2">
+                <select
+                  id="assignee"
+                  className="min-w-0 flex-1 rounded border border-line bg-[#0b1220] px-3 py-2 text-sm"
+                  value={row.assignedToId ?? ''}
+                  onChange={(changeEvent) => assignment.mutate(changeEvent.target.value || null)}
+                >
+                  <option value="">Unassigned</option>
+                  {(assignees.data ?? []).map((user) => <option key={user.id} value={user.id}>{user.name} ({user.role})</option>)}
+                </select>
+                <button onClick={() => assignment.mutate(null)} className="rounded border border-line px-3 py-2 text-sm hover:bg-white/5">Clear</button>
+              </div>
+            </div>
           </section>
           <section className="mt-5 grid gap-5 lg:grid-cols-2">
             <div className="rounded border border-line bg-panel p-4">
@@ -85,7 +111,7 @@ export default function EventDetailPage() {
           <section className="mt-5 rounded border border-line bg-panel p-4">
             <h2 className="mb-3 font-semibold">History</h2>
             <div className="space-y-2 text-sm">
-              {(history.data ?? []).map((item) => <div key={item.id} className="rounded border border-line p-3">{item.action} · {new Date(item.createdAt).toLocaleString()}</div>)}
+              {(history.data ?? []).map((item) => <div key={item.id} className="rounded border border-line p-3">{item.action} - {new Date(item.createdAt).toLocaleString()}</div>)}
             </div>
           </section>
         </>

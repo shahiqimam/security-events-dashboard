@@ -44,17 +44,15 @@ export class EventsService {
       .skip((query.page - 1) * query.limit)
       .take(query.limit)
       .getManyAndCount();
-    return { items, total, page: query.page, limit: query.limit };
+    return { items: items.map((event) => this.safeEvent(event)), total, page: query.page, limit: query.limit };
   }
 
   async get(id: string) {
-    const event = await this.events.findOne({ where: { id }, relations: { assignedTo: true } });
-    if (!event) throw new NotFoundException('Event not found');
-    return event;
+    return this.safeEvent(await this.getEntity(id));
   }
 
   async updateStatus(id: string, status: EventStatus, actorId: string) {
-    const event = await this.get(id);
+    const event = await this.getEntity(id);
     assertStatusTransition(event.status, status);
     const previous = event.status;
     event.status = status;
@@ -68,11 +66,11 @@ export class EventsService {
       previousValue: { status: previous },
       newValue: { status }
     }));
-    return saved;
+    return this.safeEvent(saved);
   }
 
   async assign(id: string, assignedToId: string | null, actorId: string) {
-    const event = await this.get(id);
+    const event = await this.getEntity(id);
     if (assignedToId) {
       const assignee = await this.users.findOne({ where: { id: assignedToId } });
       if (!assignee) throw new NotFoundException('Assignee not found');
@@ -80,6 +78,7 @@ export class EventsService {
     }
     const previous = event.assignedToId;
     event.assignedToId = assignedToId;
+    delete (event as Partial<SecurityEvent>).assignedTo;
     const saved = await this.events.save(event);
     await this.histories.save(this.histories.create({
       eventId: id,
@@ -88,19 +87,20 @@ export class EventsService {
       previousValue: { assignedToId: previous ?? null } as Record<string, unknown>,
       newValue: { assignedToId: assignedToId ?? null } as Record<string, unknown>
     }));
-    return saved;
+    return this.safeEvent(saved);
   }
 
   history(eventId: string) {
     return this.histories.find({ where: { eventId }, order: { createdAt: 'DESC' } });
   }
 
-  notes(eventId: string) {
-    return this.eventNotes.find({ where: { eventId }, relations: { author: true }, order: { createdAt: 'DESC' } });
+  async notes(eventId: string) {
+    const notes = await this.eventNotes.find({ where: { eventId }, relations: { author: true }, order: { createdAt: 'DESC' } });
+    return notes.map((note) => ({ ...note, author: this.safeUser(note.author) }));
   }
 
   async addNote(eventId: string, content: string, actorId: string) {
-    await this.get(eventId);
+    await this.getEntity(eventId);
     const note = await this.eventNotes.save({ eventId, content, authorId: actorId });
     await this.histories.save(this.histories.create({ eventId, actorId, action: HistoryAction.NOTE_ADDED, previousValue: null, newValue: { noteId: note.id } }));
     return note;
@@ -122,7 +122,19 @@ export class EventsService {
     await this.eventNotes.delete(id);
     return { deleted: true };
   }
+
+  private async getEntity(id: string) {
+    const event = await this.events.findOne({ where: { id }, relations: { assignedTo: true } });
+    if (!event) throw new NotFoundException('Event not found');
+    return event;
+  }
+
+  private safeEvent(event: SecurityEvent) {
+    return { ...event, assignedTo: event.assignedTo ? this.safeUser(event.assignedTo) : null };
+  }
+
+  private safeUser(user: User) {
+    return { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt, updatedAt: user.updatedAt };
+  }
 }
-
-
 

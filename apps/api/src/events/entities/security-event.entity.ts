@@ -28,7 +28,7 @@ export class SecurityEvent {
   @Column()
   title!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   description!: string | null;
 
   @Index()
@@ -44,13 +44,13 @@ export class SecurityEvent {
   status!: EventStatus;
 
   @Index()
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   assetName!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   username!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   sourceIp!: string | null;
 
   @Index()
@@ -73,7 +73,7 @@ export class SecurityEvent {
   rawPayload!: Record<string, unknown>;
 
   @Index()
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   assignedToId!: string | null;
 
   @ManyToOne(() => User, { nullable: true })
@@ -89,4 +89,6 @@ export class SecurityEvent {
   @UpdateDateColumn()
   updatedAt!: Date;
 }
+
+
 

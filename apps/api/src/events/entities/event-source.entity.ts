@@ -21,7 +21,7 @@ export class EventSource {
   @Column({ default: 0 })
   totalEvents!: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   lastError!: string | null;
 
   @CreateDateColumn()
@@ -30,4 +30,6 @@ export class EventSource {
   @UpdateDateColumn()
   updatedAt!: Date;
 }
+
+
 
