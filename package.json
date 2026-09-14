@@ -1,0 +1,22 @@
+{
+  "name": "security-events-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SentinelView - Security Event Monitoring Dashboard",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "lint": "npm run lint -w apps/api && npm run lint -w apps/web",
+    "test": "npm run test -w apps/api",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "dev": "concurrently \"npm run start:dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "demo:events": "tsx scripts/generate-demo-events.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
